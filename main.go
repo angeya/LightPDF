@@ -27,6 +27,9 @@ func main() {
 		Windows: &windows.Options{
 			// 关闭 GPU 硬件加速可显著降低 WebView2 GPU 进程的内存占用。
 			WebviewGpuIsDisabled: true,
+			// 禁用 WebView2 自带的 Ctrl+滚轮/捏合页面缩放，由应用自行处理 PDF 缩放。
+			IsZoomControlEnabled: false,
+			DisablePinchZoom:     true,
 		},
 		OnStartup:     app.startup,
 		OnBeforeClose: app.beforeClose,

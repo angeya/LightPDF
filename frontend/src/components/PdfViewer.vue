@@ -110,6 +110,20 @@ function onScroll(): void {
   })
 }
 
+let wheelAccum = 0
+
+/** Ctrl + 滚轮缩放：累积滚动增量，超过阈值触发一次缩放，避免触摸板小位移导致变化过快。 */
+function onViewerWheel(event: WheelEvent): void {
+  if (!event.ctrlKey || !props.tab.pageCount) return
+  event.preventDefault()
+  const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY
+  wheelAccum += delta
+  if (Math.abs(wheelAccum) < 40) return
+  if (wheelAccum < 0) zoom.zoomIn()
+  else zoom.zoomOut()
+  wheelAccum = 0
+}
+
 function scrollToJump(jump: JumpRequest): void {
   const root = containerRef.value
   if (!root || !sizes.value.length) return
@@ -228,7 +242,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="pdf-viewer scrollable" @scroll.passive="onScroll">
+  <div
+    ref="containerRef"
+    class="pdf-viewer scrollable"
+    @scroll.passive="onScroll"
+    @wheel="onViewerWheel"
+  >
     <div class="pdf-pages" :style="{ height: `${totalHeight}px`, minWidth: `${contentWidth}px` }">
       <div
         v-for="page in pageCount"

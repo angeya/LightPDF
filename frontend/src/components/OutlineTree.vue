@@ -39,9 +39,9 @@ function rowTitle(node: OutlineItem): string {
         @click="onRowClick(node)"
       >
         <button v-if="node.children.length" class="tree-toggle" @click.stop="emit('toggle', node.id)">
-          <Icon :name="expanded[node.id] ? 'caret-down' : 'caret-right'" :size="13" />
+          <Icon :name="expanded[node.id] ? 'down' : 'right'" :size="12" />
         </button>
-        <span v-else class="tree-spacer"><Icon name="file" :size="12" /></span>
+        <span v-else class="tree-spacer"></span>
         <span class="outline-title">{{ node.title }}</span>
         <span
           v-if="node.pageNumber > 0"
@@ -107,10 +107,6 @@ function rowTitle(node: OutlineItem): string {
 
 .tree-toggle:hover {
   color: var(--accent);
-}
-
-.tree-spacer {
-  opacity: 0.55;
 }
 
 .outline-title {
