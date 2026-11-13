@@ -1,0 +1,13 @@
+:root {
+  --font-ui: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --titlebar-h: 34px;
+  --toolbar-h: 44px;
+  --tabbar-h: 30px;
+  --statusbar-h: 26px;
+  --sidebar-min: 190px;
+  --sidebar-max: 520px;
+  --page-gap: 20px;
+  --transition: 140ms ease;
+}

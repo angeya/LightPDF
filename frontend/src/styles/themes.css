@@ -1,0 +1,55 @@
+:root,
+[data-ui-theme="light"] {
+  --bg-app: #f2f3f6;
+  --bg-panel: #ffffff;
+  --bg-subtle: #f7f8fa;
+  --bg-hover: #eef1f6;
+  --bg-active: #e6edfb;
+  --bg-reader: #e9ebef;
+  --bg-input: #ffffff;
+  --border: #e3e6ec;
+  --border-strong: #d3d8e2;
+  --text: #20242c;
+  --text-secondary: #626b7b;
+  --text-muted: #949cab;
+  --accent: #3867d6;
+  --accent-soft: #e8effd;
+  --accent-text: #ffffff;
+  --danger: #d64545;
+  --shadow: 0 6px 24px rgba(23, 32, 51, 0.16);
+  --page-shadow: 0 2px 12px rgba(24, 32, 48, 0.18);
+  --highlight: rgba(255, 213, 79, 0.55);
+  --highlight-active: rgba(255, 122, 69, 0.75);
+}
+
+[data-ui-theme="dark"] {
+  --bg-app: #17191d;
+  --bg-panel: #202329;
+  --bg-subtle: #262a31;
+  --bg-hover: #2c313a;
+  --bg-active: #2c3c5e;
+  --bg-reader: #131519;
+  --bg-input: #191c21;
+  --border: #323741;
+  --border-strong: #3d4350;
+  --text: #e7eaf0;
+  --text-secondary: #a2abbc;
+  --text-muted: #717b8d;
+  --accent: #6d95f5;
+  --accent-soft: #2b3b5c;
+  --accent-text: #ffffff;
+  --danger: #ef7a7a;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --page-shadow: 0 2px 16px rgba(0, 0, 0, 0.55);
+  --highlight: rgba(255, 208, 79, 0.42);
+  --highlight-active: rgba(255, 118, 70, 0.75);
+}
+
+/* 深色主题只作用于 canvas，文本选择与高亮层保持原有颜色，避免反色后失真。 */
+.pdf-canvas[data-pdf-theme="dark-invert"] {
+  filter: invert(0.88) hue-rotate(180deg) contrast(0.96);
+}
+
+.pdf-canvas[data-pdf-theme="dark-gray"] {
+  filter: invert(0.9) hue-rotate(180deg) grayscale(0.55) brightness(0.9);
+}
