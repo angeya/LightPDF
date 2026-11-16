@@ -10,7 +10,6 @@ import { backend } from './bridge'
 GlobalWorkerOptions.workerPort = new PdfWorker()
 
 const TEXT_CACHE_LIMIT = 24
-const SIZE_BATCH = 16
 
 export interface LoadPdfOptions {
   id: string
@@ -25,6 +24,7 @@ export interface PdfRuntime {
   pdf: PDFDocumentProxy
   pageCount: number
   pageSizes: PageSize[]
+  measuredPages: Set<number>
   sizeReady: boolean
   textCache: Map<number, PageText>
   destroyed: boolean
@@ -129,6 +129,7 @@ export async function loadPdf(options: LoadPdfOptions): Promise<PdfRuntime> {
     pdf,
     pageCount: pdf.numPages,
     pageSizes: [],
+    measuredPages: new Set(),
     sizeReady: false,
     textCache: new Map(),
     destroyed: false
@@ -142,7 +143,7 @@ export async function getPage(runtime: PdfRuntime, pageNumber: number): Promise<
   return runtime.pdf.getPage(pageNumber)
 }
 
-/** 先用首页尺寸填充全部占位，再在后台分批获取真实页面尺寸，避免打开大文件时长时间卡顿。 */
+/** 用首页尺寸填充占位后立即返回；其余页只在进入可视区时按需测量，避免一次性把整本文档装入 PDF.js 页面缓存。 */
 export async function initPageSizes(
   runtime: PdfRuntime,
   onUpdate: (sizes: PageSize[]) => void
@@ -152,30 +153,21 @@ export async function initPageSizes(
   const firstViewport = first.getViewport({ scale: 1 })
   const fallback: PageSize = { width: firstViewport.width, height: firstViewport.height }
   runtime.pageSizes = Array.from({ length: runtime.pageCount }, () => ({ ...fallback }))
-  onUpdate(runtime.pageSizes.slice())
-
-  for (let start = 2; start <= runtime.pageCount; start += SIZE_BATCH) {
-    if (runtime.destroyed) return
-    const end = Math.min(runtime.pageCount, start + SIZE_BATCH - 1)
-    const batch: number[] = []
-    for (let n = start; n <= end; n += 1) batch.push(n)
-    const sizes = await Promise.all(
-      batch.map(async (n) => {
-        try {
-          const page = await getPage(runtime, n)
-          const vp = page.getViewport({ scale: 1 })
-          return { n, size: { width: vp.width, height: vp.height } as PageSize }
-        } catch {
-          return { n, size: { ...fallback } }
-        }
-      })
-    )
-    if (runtime.destroyed) return
-    for (const { n, size } of sizes) runtime.pageSizes[n - 1] = size
-    onUpdate(runtime.pageSizes.slice())
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-  }
+  runtime.measuredPages.add(1)
   runtime.sizeReady = true
+  onUpdate(runtime.pageSizes.slice())
+}
+
+/** 仅测量指定页的真实尺寸，结果记入运行时缓存；绝大多数同尺寸文档无需遍历其余页面。 */
+export async function getPageSize(runtime: PdfRuntime, pageNumber: number): Promise<PageSize | null> {
+  if (runtime.destroyed || pageNumber < 1 || pageNumber > runtime.pageCount) return null
+  if (runtime.measuredPages.has(pageNumber)) return runtime.pageSizes[pageNumber - 1]
+  const page = await getPage(runtime, pageNumber)
+  const viewport = page.getViewport({ scale: 1 })
+  const size: PageSize = { width: viewport.width, height: viewport.height }
+  runtime.pageSizes[pageNumber - 1] = size
+  runtime.measuredPages.add(pageNumber)
+  return size
 }
 
 /** 提取单页文本并按页缓存（有限容量 LRU），搜索不依赖 Canvas 渲染。 */

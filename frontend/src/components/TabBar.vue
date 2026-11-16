@@ -26,6 +26,12 @@ function onDocumentClick(): void {
   menu.value = null
 }
 
+function onTabMouseDown(event: MouseEvent, tab: PdfTab): void {
+  if (event.button !== 1) return
+  event.preventDefault()
+  emit('close', tab.id)
+}
+
 function onWheel(event: WheelEvent): void {
   if (!scroller.value) return
   if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
@@ -47,6 +53,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
         class="tab"
         :class="{ active: tab.id === activeId }"
         :title="tab.filePath"
+        @mousedown="onTabMouseDown($event, tab)"
         @click="emit('select', tab.id)"
         @contextmenu="openMenu($event, tab)"
       >

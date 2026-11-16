@@ -5,7 +5,7 @@ import type { PageHighlight } from '../types/search'
 import { useDocumentStore } from '../stores/documentStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useUiStore } from '../stores/uiStore'
-import { getRuntime, initPageSizes } from '../services/pdfService'
+import { getPageSize, getRuntime, initPageSizes } from '../services/pdfService'
 import { invalidateRenders } from '../composables/usePdfRender'
 import { usePdfZoom } from '../composables/usePdfZoom'
 import PdfPage from './PdfPage.vue'
@@ -58,13 +58,30 @@ const highlightMap = computed(() => {
 
 function updateRenderSet(): void {
   const next = new Set(visible.value)
-  const limit = visible.value.size + 2
+  // 同时保留的渲染页控制在 6 页以内，避免快速滚动时多个大 Canvas 同时驻留。
+  const limit = Math.min(visible.value.size + 2, 6)
   for (const page of recentPages) {
     if (next.size >= limit) break
     next.add(page)
   }
   renderSet.value = next
 }
+
+/** 只为即将渲染的页面测量真实尺寸，避免遍历整本文档。 */
+watch(renderSet, () => {
+  const runtime = getRuntime(props.tab.id)
+  if (!runtime) return
+  for (const page of renderSet.value) {
+    if (runtime.measuredPages.has(page)) continue
+    void getPageSize(runtime, page)
+      .then((size) => {
+        if (size && !runtime.destroyed && getRuntime(props.tab.id) === runtime) {
+          sizes.value = runtime.pageSizes.slice()
+        }
+      })
+      .catch(() => undefined)
+  }
+})
 
 function setupObserver(): void {
   const root = containerRef.value
@@ -78,7 +95,7 @@ function setupObserver(): void {
         if (!page) continue
         if (entry.isIntersecting) {
           next.add(page)
-          recentPages = [page, ...recentPages.filter((p) => p !== page)].slice(0, 8)
+          recentPages = [page, ...recentPages.filter((p) => p !== page)].slice(0, 4)
         } else {
           next.delete(page)
         }

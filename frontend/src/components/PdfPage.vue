@@ -39,12 +39,15 @@ const links = ref<PageLink[]>([])
 const renderKey = computed(() => `${props.runtimeId}:${props.pageNumber}`)
 let currentTask: RenderTask | null = null
 
+let measureContext: CanvasRenderingContext2D | null = null
+
 /** 用 TextContent + 视口变换矩阵生成透明文本层，实现文本选择与复制。 */
 async function buildTextLayer(page: PDFPageProxy, viewport: PageViewport): Promise<void> {
   const layer = textLayerRef.value
   if (!layer) return
   const content = await page.getTextContent()
-  const measure = document.createElement('canvas').getContext('2d')
+  measureContext ??= document.createElement('canvas').getContext('2d')
+  const measure = measureContext
   const fragment = document.createDocumentFragment()
 
   for (const raw of content.items) {
@@ -160,6 +163,12 @@ async function render(signal: RenderSignal): Promise<void> {
       task.cancel()
     } catch {
       /* 任务可能已结束 */
+    }
+    // 取消时立刻释放大尺寸 Canvas 像素，避免快速滚动时多个页面缓冲叠加。
+    const activeCanvas = canvasRef.value
+    if (activeCanvas && activeCanvas.width > 1) {
+      activeCanvas.width = 1
+      activeCanvas.height = 1
     }
   })
 

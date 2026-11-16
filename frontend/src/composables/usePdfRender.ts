@@ -11,7 +11,8 @@ interface RenderJob {
   reject: (err: unknown) => void
 }
 
-const MAX_CONCURRENT = 3
+// 图片型 PDF 单页 Canvas 像素开销很大，降低并发以削平快速滚动时的内存峰值。
+const MAX_CONCURRENT = 2
 let generation = 0
 let running = 0
 const queue: RenderJob[] = []
