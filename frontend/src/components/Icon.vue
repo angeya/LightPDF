@@ -10,6 +10,8 @@ const icons: Record<string, string> = {
   left: '<path d="m15 18-6-6 6-6"/>',
   right: '<path d="m9 18 6-6-6-6"/>',
   down: '<path d="m6 9 6 6 6-6"/>',
+  'tree-right': '<path d="M9 3 17 12 9 21" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
+  'tree-down': '<path d="M3 9 12 17 21 9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
   up: '<path d="m6 15 6-6 6 6"/>',
   'chevrons-down': '<path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/>',
   'chevrons-up': '<path d="m7 13 5-5 5 5"/><path d="m7 20 5-5 5 5"/>',

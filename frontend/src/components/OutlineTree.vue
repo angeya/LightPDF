@@ -39,7 +39,7 @@ function rowTitle(node: OutlineItem): string {
         @click="onRowClick(node)"
       >
         <button v-if="node.children.length" class="tree-toggle" @click.stop="emit('toggle', node.id)">
-          <Icon :name="expanded[node.id] ? 'down' : 'right'" :size="13" />
+          <Icon :name="expanded[node.id] ? 'tree-down' : 'tree-right'" :size="16" />
         </button>
         <span v-else class="tree-spacer"></span>
         <span class="outline-title">{{ node.title }}</span>
@@ -102,12 +102,13 @@ function rowTitle(node: OutlineItem): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  /* 重置 button 的 UA 默认内边距，否则 16px 容器只剩 4px 可用，图标会被压扁。 */
+  padding: 0;
+  color: var(--text);
 }
 
-/* 目录展开箭头加粗，与普通细线图标区分，保证尖括号样式清晰可见。 */
 .tree-toggle :deep(svg) {
-  stroke-width: 2.4;
+  flex: none;
 }
 
 .tree-toggle:hover {
