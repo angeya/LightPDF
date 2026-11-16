@@ -39,7 +39,7 @@ function rowTitle(node: OutlineItem): string {
         @click="onRowClick(node)"
       >
         <button v-if="node.children.length" class="tree-toggle" @click.stop="emit('toggle', node.id)">
-          <Icon :name="expanded[node.id] ? 'tree-down' : 'tree-right'" :size="16" />
+          <Icon :name="expanded[node.id] ? 'tree-down' : 'tree-right'" :size="11" />
         </button>
         <span v-else class="tree-spacer"></span>
         <span class="outline-title">{{ node.title }}</span>
