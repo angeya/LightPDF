@@ -21,7 +21,7 @@ import { usePdfTheme } from './composables/usePdfTheme'
 import { useShortcuts } from './composables/useShortcuts'
 import { invalidateRenders } from './composables/usePdfRender'
 import { backend } from './services/bridge'
-import { destroyAllRuntimes } from './services/pdfService'
+import { destroyAllRuntimes, startIdleCleanup } from './services/pdfService'
 import { disposeSearchWorker } from './services/searchService'
 
 const docs = useDocumentStore()
@@ -47,6 +47,8 @@ const pdfThemeValue = computed({
 })
 
 usePdfTheme()
+
+let stopIdleCleanup: (() => void) | null = null
 
 const activeTab = computed(() => docs.activeTab)
 const showViewer = computed(
@@ -84,10 +86,15 @@ onMounted(async () => {
     if (Array.isArray(paths) && paths.length) void openPaths(paths as string[])
   })
 
+  stopIdleCleanup = startIdleCleanup(() => docs.activeId)
   window.addEventListener('beforeunload', cleanup)
 })
 
-onUnmounted(() => window.removeEventListener('beforeunload', cleanup))
+onUnmounted(() => {
+  stopIdleCleanup?.()
+  stopIdleCleanup = null
+  window.removeEventListener('beforeunload', cleanup)
+})
 
 watch(
   () => docs.activeId,

@@ -79,3 +79,14 @@ export function cancelRender(key: string): void {
   const index = queue.findIndex((job) => job.key === key)
   if (index >= 0) queue.splice(index, 1)[0].resolve()
 }
+
+/** 关闭 / 清理文档时取消该文档全部在途任务，避免渲染任务持有已销毁文档的页面与 Canvas。 */
+export function cancelRendersForRuntime(runtimeId: string): void {
+  const prefix = `${runtimeId}:`
+  for (const [key, cancel] of [...cancellers]) {
+    if (key.startsWith(prefix)) cancel()
+  }
+  for (let i = queue.length - 1; i >= 0; i -= 1) {
+    if (queue[i].key.startsWith(prefix)) queue.splice(i, 1)[0].resolve()
+  }
+}

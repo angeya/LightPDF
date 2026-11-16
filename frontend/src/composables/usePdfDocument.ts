@@ -1,6 +1,6 @@
 import type { PdfHandle, RecentFile } from '../types/backend'
 import { backend, isDesktop } from '../services/bridge'
-import { destroyRuntime, loadPdf, resolveOutline } from '../services/pdfService'
+import { destroyRuntime, loadPdf, resolveOutline, touchRuntime } from '../services/pdfService'
 import { useDocumentStore } from '../stores/documentStore'
 import { useRecentStore } from '../stores/recentStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -31,6 +31,7 @@ export function usePdfDocument() {
         return
       }
       docs.updateTab(tabId, { pageCount: runtime.pageCount, isLoading: false, error: '' })
+      touchRuntime(tabId)
       const outline = await resolveOutline(runtime)
       if (docs.getTab(tabId)) docs.setOutline(tabId, outline)
       const current = docs.getTab(tabId)

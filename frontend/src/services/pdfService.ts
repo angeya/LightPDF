@@ -3,6 +3,7 @@ import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker&inline'
 import type { TextItem } from 'pdfjs-dist/types/src/display/api'
 import type { OutlineItem, PageSize } from '../types/document'
 import type { PageText, TextItemLite } from '../types/search'
+import { cancelRendersForRuntime } from '../composables/usePdfRender'
 import { backend } from './bridge'
 
 // 内联 Worker 通过 blob URL 创建，避免 Wails 自定义协议下外部脚本加载受限；
@@ -10,6 +11,9 @@ import { backend } from './bridge'
 GlobalWorkerOptions.workerPort = new PdfWorker()
 
 const TEXT_CACHE_LIMIT = 24
+/** 文档超过 10 分钟未被激活，则清理 PDF.js 内部页面资源缓存。 */
+const IDLE_CLEANUP_MS = 10 * 60 * 1000
+const IDLE_CHECK_MS = 60 * 1000
 
 export interface LoadPdfOptions {
   id: string
@@ -27,6 +31,8 @@ export interface PdfRuntime {
   measuredPages: Set<number>
   sizeReady: boolean
   textCache: Map<number, PageText>
+  lastActiveAt: number
+  idleCleaned: boolean
   destroyed: boolean
 }
 
@@ -132,6 +138,8 @@ export async function loadPdf(options: LoadPdfOptions): Promise<PdfRuntime> {
     measuredPages: new Set(),
     sizeReady: false,
     textCache: new Map(),
+    lastActiveAt: Date.now(),
+    idleCleaned: false,
     destroyed: false
   }
   runtimes.set(options.id, runtime)
@@ -310,6 +318,48 @@ export async function resolveOutline(runtime: PdfRuntime): Promise<OutlineItem[]
   return walk(raw, 0, '')
 }
 
+/** 文档被激活或重新访问时调用，重置空闲计时并标记需要重新测量页面。 */
+export function touchRuntime(id: string): void {
+  const runtime = runtimes.get(id)
+  if (!runtime || runtime.destroyed) return
+  runtime.lastActiveAt = Date.now()
+  if (runtime.idleCleaned) runtime.idleCleaned = false
+}
+
+/**
+ * 清理超过 10 分钟未激活的文档内部页面缓存。
+ * 只调用 cleanup 保留文档对象，切回标签时会自动重新解析所需页面。
+ */
+export async function cleanupIdleRuntimes(activeId: string): Promise<void> {
+  const now = Date.now()
+  for (const runtime of runtimes.values()) {
+    if (runtime.destroyed || runtime.id === activeId || runtime.idleCleaned) continue
+    if (now - runtime.lastActiveAt < IDLE_CLEANUP_MS) continue
+    runtime.idleCleaned = true
+    cancelRendersForRuntime(runtime.id)
+    runtime.textCache.clear()
+    try {
+      await runtime.pdf.cleanup()
+    } catch {
+      /* 忽略已回收文档的清理错误 */
+    }
+  }
+}
+
+/** 启动空闲清理定时器，返回停止函数供应用卸载时调用。 */
+export function startIdleCleanup(getActiveId: () => string): () => void {
+  const timer = window.setInterval(() => {
+    void cleanupIdleRuntimes(getActiveId())
+  }, IDLE_CHECK_MS)
+  return () => window.clearInterval(timer)
+}
+
+/** 触发浏览器 GC（若运行环境暴露了 gc 接口），加快释放后的内存回落。 */
+export function tryCollectGarbage(): void {
+  const gc = (window as unknown as { gc?: () => void }).gc
+  if (typeof gc === 'function') gc()
+}
+
 /** 关闭标签页时销毁 PDF.js 文档并撤销后端文件授权。 */
 export async function destroyRuntime(id: string): Promise<void> {
   const runtime = runtimes.get(id)
@@ -317,12 +367,19 @@ export async function destroyRuntime(id: string): Promise<void> {
   runtime.destroyed = true
   runtime.textCache.clear()
   runtime.pageSizes = []
+  runtime.measuredPages.clear()
   runtimes.delete(id)
+  // 先取消该文档全部在途渲染，避免任务继续持有页面对象与 Canvas 像素。
+  cancelRendersForRuntime(id)
   try {
     await runtime.pdf.cleanup()
-    await runtime.pdf.destroy()
   } catch {
     /* 文档可能已经被 PDF.js 自行回收 */
+  }
+  try {
+    await runtime.pdf.destroy()
+  } catch {
+    /* 忽略销毁错误 */
   }
   try {
     const app = window.go?.main?.App
@@ -330,6 +387,7 @@ export async function destroyRuntime(id: string): Promise<void> {
   } catch {
     /* 忽略退出时的清理错误 */
   }
+  tryCollectGarbage()
 }
 
 export async function destroyAllRuntimes(): Promise<void> {

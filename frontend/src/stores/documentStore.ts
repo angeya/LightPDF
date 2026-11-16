@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import type { PdfHandle } from '../types/backend'
 import type { FitMode, JumpRequest, OutlineItem, PdfTab, SearchStatus } from '../types/document'
 import type { SearchResult } from '../types/search'
-import { destroyRuntime } from '../services/pdfService'
+import { destroyRuntime, touchRuntime } from '../services/pdfService'
 import { storageService } from '../services/storageService'
 
 let tabSeq = 0
@@ -85,6 +85,7 @@ export const useDocumentStore = defineStore('document', () => {
     const previous = activeTab.value
     if (previous) flushProgress(previous)
     activeId.value = id
+    touchRuntime(id)
   }
 
   function closeTab(id: string): void {
