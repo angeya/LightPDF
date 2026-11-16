@@ -132,7 +132,7 @@ input:focus {
 }
 
 .scrollable::-webkit-scrollbar-thumb {
-  min-height: 56px;
+  min-height: 34px;
   background: var(--border-strong);
   border-radius: 7px;
   border: 2px solid transparent;
