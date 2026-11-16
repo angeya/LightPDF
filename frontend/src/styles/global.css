@@ -122,19 +122,25 @@ input:focus {
 
 .scrollable {
   overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
 }
 
+/* 滚动条加宽约一倍，便于拖动；并给滑块设置最小高度，长文档下滑块不会短到难以抓取。
+   （不使用 scrollbar-width，否则 Chromium 会禁用下面的 webkit 自定义样式） */
 .scrollable::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
+  width: 14px;
+  height: 14px;
 }
 
 .scrollable::-webkit-scrollbar-thumb {
+  min-height: 56px;
   background: var(--border-strong);
-  border-radius: 6px;
+  border-radius: 7px;
   border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
   background-clip: padding-box;
 }
 
